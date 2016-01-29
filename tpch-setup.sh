@@ -13,11 +13,13 @@ function runcommand {
 	fi
 }
 
+. beeline.sh
+
 if [ ! -f tpch-gen/target/tpch-gen-1.0-SNAPSHOT.jar ]; then
 	echo "Please build the data generator with ./tpch-build.sh first"
 	exit 1
 fi
-which hive > /dev/null 2>&1
+which beeline > /dev/null 2>&1
 if [ $? -ne 0 ]; then
 	echo "Script must be run where Hive is installed"
 	exit 1
@@ -62,7 +64,7 @@ echo "TPC-H text data generation complete."
 
 # Create the text/flat tables as external tables. These will be later be converted to ORCFile.
 echo "Loading text data into external tables."
-runcommand "hive -i settings/load-flat.sql -f ddl-tpch/bin_flat/alltables.sql -d DB=tpch_text_${SCALE} -d LOCATION=${DIR}/${SCALE}"
+runcommand "${BEELINE_COMMAND} -i settings/load-flat.sql -f ddl-tpch/bin_flat/alltables.sql --hivevar DB=tpch_text_${SCALE} --hivevar LOCATION=${DIR}/${SCALE}"
 
 # Create the optimized tables.
 i=1
@@ -79,11 +81,11 @@ DATABASE=tpch_${SCHEMA_TYPE}_orc_${SCALE}
 for t in ${TABLES}
 do
 	echo "Optimizing table $t ($i/$total)."
-	COMMAND="hive -i settings/load-${SCHEMA_TYPE}.sql -f ddl-tpch/bin_${SCHEMA_TYPE}/${t}.sql \
-	    -d DB=${DATABASE} \
-	    -d SOURCE=tpch_text_${SCALE} -d BUCKETS=${BUCKETS} \
-            -d SCALE=${SCALE} \
-	    -d FILE=orc"
+	COMMAND="${BEELINE_COMMAND} -i settings/load-${SCHEMA_TYPE}.sql -f ddl-tpch/bin_${SCHEMA_TYPE}/${t}.sql \
+	    --hivevar DB=${DATABASE} \
+	    --hivevar SOURCE=tpch_text_${SCALE} --hivevar BUCKETS=${BUCKETS} \
+            --hivevar SCALE=${SCALE} \
+	    --hivevar FILE=orc"
 	runcommand "$COMMAND"
 	if [ $? -ne 0 ]; then
 		echo "Command failed, try 'export DEBUG_SCRIPT=ON' and re-running"
@@ -92,6 +94,6 @@ do
 	i=`expr $i + 1`
 done
 
-hive -i settings/load-${SCHEMA_TYPE}.sql -f ddl-tpch/bin_${SCHEMA_TYPE}/analyze.sql --database ${DATABASE}; 
+${BEELINE_COMMAND} -i settings/load-${SCHEMA_TYPE}.sql -f ddl-tpch/bin_${SCHEMA_TYPE}/analyze.sql --hivevar DB=${DATABASE}; 
 
 echo "Data loaded into database ${DATABASE}."

@@ -43,6 +43,12 @@ All of these steps should be carried out on your Hadoop cluster.
 
 - Step 5: Generate and load the data.
 
+ - Step 5.1: Edit ```beeline.sh``` for your environments.
+
+  The ```beeline.sh``` has variables for ```beeline```. Before run any scripts, confirm the variables.
+
+ - Step 5.2: Run Script.
+
   The scripts ```tpcds-setup.sh``` and ```tpch-setup.sh``` generate and load data for TPC-DS and TPC-H, respectively. General usage is ```tpcds-setup.sh scale_factor [directory]``` or ```tpch-setup.sh scale_factor [directory]```
 
   Some examples:
